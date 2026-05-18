@@ -64,3 +64,10 @@ export async function login(formData: FormData) {
 
   return redirect('/')
 }
+
+// ログアウト処理
+export async function logout() {
+  const supabase = await getSupabase()
+  await supabase.auth.signOut()
+  return redirect('/login')
+}
