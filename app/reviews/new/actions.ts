@@ -1,4 +1,4 @@
-// app/reviews/new/actions.ts （1〜3の対策版）
+// app/reviews/new/actions.ts
 'use server'
 
 import { createServerClient } from '@supabase/ssr'
@@ -23,16 +23,22 @@ async function getSupabase() {
 export async function createReview(formData: FormData) {
   const supabase = await getSupabase()
 
+  // 1. ログインユーザーの取得
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('ログインが必要です')
   }
 
+  // 2. フォームから値を取得
   const title = formData.get('title') as string
   const item_name = formData.get('item_name') as string
   const item_category = formData.get('item_category') as string
   const store_name = formData.get('store_name') as string
   const cost = parseInt(formData.get('cost') as string, 10)
+  
+  // 🔒 公開設定の値を取得して Boolean型 (true/false) に変換
+  const isPublicRaw = formData.get('is_public') as string
+  const is_public = isPublicRaw === 'true'
   
   // 画像ファイルの取得
   const imageFile = formData.get('image') as File | null
@@ -40,13 +46,10 @@ export async function createReview(formData: FormData) {
   // デフォルトのダミー画像URL
   let imageUrl = 'https://placehold.co/600x400?text=No+Image'
 
-  // 【対策1＆2】画像がちゃんと選択されており、かつサイズが0より大きい場合のみ処理
+  // 3. 画像が選択されていれば Supabase Storage にアップロード
   if (imageFile && imageFile.size > 0 && imageFile.name !== 'undefined') {
     
-    // 小文字に統一して拡張子を取得
     const fileExt = imageFile.name.split('.').pop()?.toLowerCase()
-    
-    // 【対策3】許可する拡張子のリスト（安全対策）
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
     
     if (!fileExt || !allowedExtensions.includes(fileExt)) {
@@ -54,10 +57,8 @@ export async function createReview(formData: FormData) {
       return redirect('/reviews/new?error=invalid_file_type')
     }
 
-    // ユニークなファイル名を作成
     const fileName = `${user.id}_${Date.now()}.${fileExt}`
 
-    // Storageへのアップロード
     const { data: storageData, error: storageError } = await supabase.storage
       .from('review-images')
       .upload(fileName, imageFile, {
@@ -69,7 +70,6 @@ export async function createReview(formData: FormData) {
       return redirect('/reviews/new?error=image_upload_failed')
     }
 
-    // 公開URLの取得
     const { data: { publicUrl } } = supabase.storage
       .from('review-images')
       .getPublicUrl(fileName)
@@ -77,7 +77,7 @@ export async function createReview(formData: FormData) {
     imageUrl = publicUrl
   }
 
-  // データベースへ保存
+  // 4. データベース（reviewsテーブル）に保存
   const { error: dbError } = await supabase
     .from('reviews')
     .insert([
@@ -88,8 +88,8 @@ export async function createReview(formData: FormData) {
         item_category,
         store_name,
         cost,
-        item_image_url: imageUrl, // 画像がない場合はダミーURLが入る
-        is_public: true,
+        item_image_url: imageUrl,
+        is_public, // 🔒 ここで判定された true/false を保存します
       },
     ])
 

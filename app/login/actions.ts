@@ -69,5 +69,5 @@ export async function login(formData: FormData) {
 export async function logout() {
   const supabase = await getSupabase()
   await supabase.auth.signOut()
-  return redirect('/login')
+  return redirect('/')
 }
