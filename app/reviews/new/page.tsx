@@ -17,7 +17,10 @@ export default function NewReviewPage() {
             <label className="block text-sm font-medium mb-1">景品名</label>
             <input name="item_name" type="text" required className="w-full p-2 border rounded" placeholder="初音ミク フィギュア" />
           </div>
-
+          <div>
+            <label className="block text-sm font-medium mb-1">景品写真</label>
+            <input name="image" type="file" accept="image/*" className="w-full p-2 border rounded bg-gray-50" />
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">景品の種別</label>
             <input name="item_category" type="text" className="w-full p-2 border rounded" placeholder="フィギュア" />
